@@ -1,5 +1,14 @@
 # openai-rq
 
+[![CI](https://github.com/allen2c/openai-rq/actions/workflows/ci.yml/badge.svg)](https://github.com/allen2c/openai-rq/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](https://github.com/allen2c/openai-rq/blob/main/LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Lint](https://img.shields.io/badge/lint-ruff-261230.svg)](https://github.com/astral-sh/ruff)
+[![Docs](https://img.shields.io/badge/docs-live-d92d20.svg)](https://allen2c.github.io/openai-rq/)
+[![Deploy docs](https://github.com/allen2c/openai-rq/actions/workflows/pages.yml/badge.svg)](https://github.com/allen2c/openai-rq/actions/workflows/pages.yml)
+
+📊 **Overview deck:** https://allen2c.github.io/openai-rq/
+
 Use the OpenAI SDK from behind a locked-down network where the **only** reachable
 outbound endpoint is Redis. `openai-rq` ships each OpenAI HTTP request over Redis
 Streams to a worker that replays it against a local OpenAI-compatible server (e.g. vLLM)
