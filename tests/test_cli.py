@@ -1,27 +1,33 @@
-from typer.testing import CliRunner
+from typer.main import get_command
 
 from openai_rq.cli import _build_worker, _parse_headers, app
 
-runner = CliRunner()
+
+def _worker_command():
+    # Inspect the actual Click command tree, NOT the rendered `--help`: Typer renders
+    # help via Rich, which truncates option names on narrow terminals (e.g. CI), so
+    # asserting substrings on help output is environment-dependent and flaky.
+    group = get_command(app)
+    return group, group.commands["worker"]
 
 
 def test_worker_is_a_named_subcommand():
-    # spec §5c documents `openai-rq worker ...`; `worker` must be a real subcommand,
-    # not collapsed to root (which happens with a single command + no callback).
-    top = runner.invoke(app, ["--help"])
-    assert top.exit_code == 0
-    assert "worker" in top.output
+    group, _worker = _worker_command()
+    assert "worker" in group.commands
 
 
-def test_worker_help_lists_flags():
-    result = runner.invoke(app, ["worker", "--help"])
-    assert result.exit_code == 0
-    assert "--redis-url" in result.output
-    assert "--openai-base-url" in result.output
-    assert "--openai-api-key" in result.output
-    assert "--openai-header" in result.output
-    assert "--concurrency" in result.output
-    assert "--stream-flush-ms" in result.output
+def test_worker_lists_flags():
+    _group, worker = _worker_command()
+    flags = {opt for param in worker.params for opt in param.opts}
+    for flag in [
+        "--redis-url",
+        "--openai-base-url",
+        "--openai-api-key",
+        "--openai-header",
+        "--concurrency",
+        "--stream-flush-ms",
+    ]:
+        assert flag in flags, f"missing flag: {flag}"
 
 
 def test_parse_headers():
