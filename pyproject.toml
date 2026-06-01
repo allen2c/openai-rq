@@ -1,0 +1,18 @@
+[project]
+name = "openai-rq"
+version = "0.1.0"
+description = "OpenAI-compatible client + worker that bridge inference requests over a Redis queue (Redis Streams), for running LLMs across heavily restricted networks."
+authors = [{ name = "AllenChou", email = "f1470891079@gmail.com" }]
+license = "Apache-2.0 license"
+requires-python = ">=3.11,<4"
+dependencies = ["openai>=1.0", "redis>=5.0", "httpx", "typer"]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "black", "isort", "ruff"]
+
+[project.scripts]
+openai-rq = "openai_rq.cli:app"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
