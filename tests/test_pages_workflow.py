@@ -45,8 +45,12 @@ def test_jobs_and_first_party_actions():
 
     # Pin major versions: an incompatible downgrade (e.g. deploy-pages@v3) must fail here.
     steps_text = yaml.safe_dump(jobs)
-    for action in ["actions/checkout@v4", "actions/configure-pages@v5",
-                   "actions/upload-pages-artifact@v3", "actions/deploy-pages@v4"]:
+    for action in [
+        "actions/checkout@v4",
+        "actions/configure-pages@v5",
+        "actions/upload-pages-artifact@v3",
+        "actions/deploy-pages@v4",
+    ]:
         assert action in steps_text, f"missing/wrong first-party action: {action}"
 
 

@@ -1,3 +1,10 @@
+# Build & publish the openai-rq slide deck (docs/index.html) to GitHub Pages.
+#
+# One-time setup (repo owner): Settings -> Pages -> Build and deployment ->
+# Source = "GitHub Actions". Public repos only (private repos need a paid plan).
+# After that, every push to main touching the deck redeploys it to
+# https://<owner>.github.io/openai-rq/.
+
 name: Deploy docs to GitHub Pages
 
 on:
@@ -8,6 +15,8 @@ on:
       - .github/workflows/pages.yml
   workflow_dispatch:
 
+# Serialise deploys; never cancel one mid-flight (a half-published site is worse
+# than a queued run).
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -16,12 +25,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read # build only reads the repo
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Stage only the deck (keep internal docs private)
+      - name: Stage only the deck (internal design docs stay private)
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p _site
           cp docs/index.html _site/
       - name: Configure Pages
@@ -35,7 +46,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     permissions:
-      pages: write
+      pages: write # only deploy needs the Pages / OIDC writes
       id-token: write
     environment:
       name: github-pages

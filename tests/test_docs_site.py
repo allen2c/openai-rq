@@ -23,7 +23,9 @@ def test_has_exactly_eleven_slides(html):
 
 def test_no_network_fetched_resources(html):
     assert not re.search(r'<script[^>]+src=["\']https?:', html), "external script"
-    assert not re.search(r'<link[^>]+href=["\']https?:', html), "external stylesheet/font"
+    assert not re.search(
+        r'<link[^>]+href=["\']https?:', html
+    ), "external stylesheet/font"
     assert not re.search(r'<img[^>]+src=["\']https?:', html), "external image"
     assert "url(http" not in html, "external url() in CSS"
 
