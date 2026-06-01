@@ -35,7 +35,7 @@ async def test_api_key_injected_as_bearer_and_dummy_stripped():
     assert seen["headers"]["authorization"] == "Bearer realkey"
 
 
-async def test_default_headers_inject_azure_style_api_key():
+async def test_default_headers_inject_custom_api_key_header():
     seen, app = _capture()
     backend = HTTPBackend(
         base_url="http://localhost:8000",

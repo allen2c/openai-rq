@@ -25,7 +25,7 @@ class HTTPBackend:
 
     - ``api_key``       -> ``Authorization: Bearer <key>`` (replaces the client's dummy)
     - ``default_headers`` -> fixed headers merged on every relay; covers non-Bearer auth
-      such as Azure OpenAI's ``api-key: <key>``.
+      such as servers that use an ``api-key: <key>`` header instead of Bearer.
 
     Uses only the ORIGIN of ``base_url``; the request path (which already includes
     ``/v1``) is appended verbatim.

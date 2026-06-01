@@ -64,7 +64,7 @@ def _build_worker(
 @app.command()
 def worker(
     redis_url: str = typer.Option(
-        ..., "--redis-url", help="rediss://...redis.cache.windows.net:6380"
+        ..., "--redis-url", help="redis:// or rediss:// (TLS) URL"
     ),
     openai_base_url: str = typer.Option(
         "http://localhost:8000/v1",
@@ -81,7 +81,7 @@ def worker(
         None,
         "--openai-header",
         metavar="KEY=VALUE",
-        help="extra backend header (repeatable), e.g. api-key=... for Azure",
+        help="extra backend header (repeatable), e.g. api-key=... for non-Bearer auth",
     ),
     concurrency: int = typer.Option(16, "--concurrency"),
     group: str = typer.Option("openai-rq", "--group"),
