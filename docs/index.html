@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>openai-rq</title>
+<style>
+  :root{
+    --bg:#ffffff; --fg:#1a1a1a; --muted:#666666;
+    --accent:#d92d20; --rule:#ececec;
+    --code-bg:#f6f8fa; --code-fg:#1a1a1a;
+    --sans:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--fg);font-family:var(--sans);line-height:1.5;
+    -webkit-font-smoothing:antialiased}
+
+  .progress{position:fixed;top:0;left:0;right:0;height:3px;background:transparent;z-index:10}
+  .progress-bar{height:100%;width:0;background:var(--accent);transition:width .25s ease}
+
+  .slide{display:none;min-height:100vh;padding:7vh 8vw;flex-direction:column;
+    justify-content:center}
+  .slide.active{display:flex;animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .inner{max-width:900px;width:100%;margin:0 auto}
+
+  .label{text-transform:uppercase;letter-spacing:.16em;font-size:.72rem;font-weight:700;
+    color:var(--accent);margin-bottom:.8rem}
+  .rule{width:28px;height:3px;background:var(--accent);margin:0 0 1.3rem}
+  h1{font-size:clamp(2.4rem,6vw,4rem);font-weight:800;letter-spacing:-.03em;margin:.1em 0}
+  h2{font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;letter-spacing:-.02em;margin:0 0 .6em}
+  .subtitle{font-size:clamp(1rem,2.2vw,1.3rem);color:var(--muted);max-width:34em}
+  p{font-size:clamp(1rem,2vw,1.2rem)}
+  ul{font-size:clamp(1rem,2vw,1.18rem);padding-left:1.2em}
+  li{margin:.45em 0}
+  li::marker{color:var(--accent)}
+  strong{font-weight:700}
+  .big{font-size:clamp(1.2rem,3vw,1.7rem);line-height:1.45}
+
+  pre.code{background:var(--code-bg);color:var(--code-fg);font-family:var(--mono);
+    font-size:clamp(.78rem,1.5vw,1rem);line-height:1.6;padding:1.1em 1.3em;border-radius:8px;
+    border:1px solid var(--rule);overflow:auto;margin:1em 0}
+  code{font-family:var(--mono)}
+  .cmt{color:var(--muted)}
+  .kw{color:var(--accent)}
+
+  .diagram{display:flex;align-items:center;flex-wrap:wrap;gap:.6rem;margin:1.4rem 0;
+    font-family:var(--mono);font-size:clamp(.75rem,1.6vw,1rem)}
+  .node{border:1.5px solid var(--fg);border-radius:8px;padding:.7em 1em;background:#fff;
+    text-align:center;white-space:nowrap}
+  .node.accent{border-color:var(--accent);color:var(--accent);font-weight:700}
+  .node.dim{border-style:dashed;color:var(--muted)}
+  .arrow{color:var(--muted);font-weight:700}
+
+  .controls{position:fixed;bottom:1.4rem;left:0;right:0;display:flex;gap:1rem;
+    align-items:center;justify-content:center;z-index:10}
+  .controls button{font-size:1.2rem;width:2.4rem;height:2.4rem;border-radius:50%;
+    border:1px solid var(--rule);background:#fff;color:var(--fg);cursor:pointer;line-height:1}
+  .controls button:hover{border-color:var(--accent);color:var(--accent)}
+  .counter{font-family:var(--mono);font-size:.85rem;color:var(--muted);min-width:4.5em;
+    text-align:center}
+
+  a{color:var(--accent)}
+
+  @media print{
+    .progress,.controls{display:none}
+    .slide{display:flex !important;min-height:auto;page-break-after:always;padding:6vh 8vw}
+  }
+</style>
+</head>
+<body>
+
+<div class="progress"><div class="progress-bar"></div></div>
+
+<main>
+
+  <!-- 1 · Title -->
+  <section class="slide">
+    <div class="inner">
+      <div class="label">OpenAI SDK · Redis · vLLM</div>
+      <h1>openai-rq</h1>
+      <p class="subtitle">Run the OpenAI SDK from behind a locked-down network —
+        by tunnelling inference over Redis.</p>
+    </div>
+  </section>
+
+  <!-- 2 · The problem -->
+  <section class="slide">
+    <div class="inner">
+      <div class="rule"></div>
+      <h2>The problem</h2>
+      <p>Your client sits behind a heavily restricted network. The <strong>only</strong>
+        reachable outbound endpoint — from both sides — is Redis.</p>
+      <div class="diagram">
+        <span class="node">client</span>
+        <span class="arrow">│ 🔒 │</span>
+        <span class="node accent">Redis</span>
+        <span class="arrow">│ 🔒 │</span>
+        <span class="node dim">cloud / vLLM</span>
+      </div>
+      <p class="subtitle">No direct HTTP from the client to the inference box is possible.</p>
+    </div>
+  </section>
+
+  <!-- 3 · Redis is the only rendezvous -->
+  <section class="slide">
+    <div class="inner">
+      <div class="rule"></div>
+      <h2>So Redis is the only rendezvous</h2>
+      <p class="big">Redis isn't just a queue here — it's the single meeting point between
+        the external client and the in-cloud inference box.</p>
+      <p>Which means Redis has to carry the <strong>request itself</strong>, not just a job id.</p>
+    </div>
+  </section>
+
+  <!-- 4 · Key insight -->
+  <section class="slide">
+    <div class="inner">
+      <div class="label">Key insight</div>
+      <h2>vLLM is already an OpenAI HTTP server</h2>
+      <p>So the OpenAI SDK on the client already builds a valid HTTP request. We intercept
+        at the <strong>transport layer</strong>, ship that raw request over Redis, and the
+        worker simply <strong>replays</strong> it against the local server.</p>
+      <ul>
+        <li>Generic relay — chat, embeddings, any current/future endpoint, zero changes.</li>
+        <li>Errors propagate for free — the worker returns the real status + body.</li>
+        <li>Streaming is just an SSE HTTP response — same model.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 5 · Architecture -->
+  <section class="slide">
+    <div class="inner">
+      <div class="rule"></div>
+      <h2>Architecture</h2>
+      <div class="diagram">
+        <span class="node accent">OpenAIRQ</span>
+        <span class="arrow">⇄ Redis Streams ⇄</span>
+        <span class="node">openai-rq worker</span>
+        <span class="arrow">→ HTTP →</span>
+        <span class="node dim">vLLM :8000</span>
+      </div>
+      <p>Both client and worker connect <strong>only</strong> to Redis. The worker is
+        outbound-only — nothing connects <em>into</em> the cloud box.</p>
+    </div>
+  </section>
+
+  <!-- 6 · Client -->
+  <section class="slide">
+    <div class="inner">
+      <div class="rule"></div>
+      <h2>Client = a drop-in <code>openai.OpenAI</code></h2>
+      <pre class="code"><span class="cmt"># swap the class, point at Redis — everything else is identical</span>
+from openai_rq import OpenAIRQ
+
+client = OpenAIRQ(redis_url=<span class="kw">"redis://localhost:6379/0"</span>)
+
+resp = client.chat.completions.create(
+    model=<span class="kw">"openai/gpt-oss-120b"</span>,
+    messages=[{<span class="kw">"role"</span>: <span class="kw">"user"</span>, <span class="kw">"content"</span>: <span class="kw">"Hello!"</span>}],
+)
+<span class="cmt"># streaming and AsyncOpenAIRQ work exactly like the real SDK</span></pre>
+    </div>
+  </section>
+
+  <!-- 7 · extra_body / extra_headers -->
+  <section class="slide">
+    <div class="inner">
+      <div class="label">A free bonus</div>
+      <h2><code>extra_body</code> / <code>extra_headers</code> just work</h2>
+      <p>Because we intercept at the transport, the SDK bakes these into the request and the
+        worker replays them verbatim — no code needed.</p>
+      <pre class="code">client.chat.completions.create(
+    model=<span class="kw">"openai/gpt-oss-120b"</span>,
+    messages=[...],
+    extra_body={<span class="kw">"guided_json"</span>: schema},   <span class="cmt"># server-specific options pass through</span>
+)</pre>
+    </div>
+  </section>
+
+  <!-- 8 · Worker -->
+  <section class="slide">
+    <div class="inner">
+      <div class="rule"></div>
+      <h2>Worker — run it next to vLLM</h2>
+      <pre class="code">openai-rq worker \
+    --redis-url redis://localhost:6379/0 \
+    --openai-base-url http://localhost:8000/v1 \
+    --concurrency 16</pre>
+      <p>Run as many workers as you like against the same Redis — jobs are load-balanced
+        across them via a Redis <strong>consumer group</strong>.</p>
+    </div>
+  </section>
+
+  <!-- 9 · Under the hood -->
+  <section class="slide">
+    <div class="inner">
+      <div class="rule"></div>
+      <h2>Under the hood</h2>
+      <ul>
+        <li><strong>Redis Streams + consumer group</strong> — load-balanced, persistent,
+          crash-recoverable (not pub/sub).</li>
+        <li><strong>Buffered streaming</strong> — raw SSE bytes coalesced in a ~50ms window,
+          fed straight into the SDK's own parser.</li>
+        <li><strong>At-least-once reliability</strong> — XACK, XAUTOCLAIM reclaim of orphans,
+          retry → dead-letter.</li>
+        <li><strong>Mandatory TTLs</strong> on every result/stream key — bounded Redis memory.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 10 · Backend auth -->
+  <section class="slide">
+    <div class="inner">
+      <div class="rule"></div>
+      <h2>Backend auth, done right</h2>
+      <p class="big">The backend credential is owned by the <strong>worker</strong>.</p>
+      <p>Set via <code>--openai-api-key</code> (→ <code>Authorization: Bearer</code>) or
+        <code>--openai-header</code> for custom auth. It's injected at relay time and
+        <strong>never transits Redis or reaches the client</strong>.</p>
+    </div>
+  </section>
+
+  <!-- 11 · Recap -->
+  <section class="slide">
+    <div class="inner">
+      <div class="label">Recap</div>
+      <h2>Identical client code, any endpoint, zero SDK changes</h2>
+      <ul>
+        <li>Drop-in <code>OpenAIRQ</code> / <code>AsyncOpenAIRQ</code>.</li>
+        <li>Generic relay — every OpenAI endpoint, now and future.</li>
+        <li>Streams-backed reliability, bounded memory, worker-side auth.</li>
+      </ul>
+      <p class="subtitle" style="margin-top:1.4rem">github.com/AllenChou/openai-rq</p>
+    </div>
+  </section>
+
+</main>
+
+<nav class="controls">
+  <button class="prev" aria-label="Previous">‹</button>
+  <span class="counter" aria-live="polite">1 / 11</span>
+  <button class="next" aria-label="Next">›</button>
+</nav>
+
+<script>
+  (function(){
+    var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+    var bar = document.querySelector(".progress-bar");
+    var counter = document.querySelector(".counter");
+    var i = 0;
+
+    function clamp(n){ return Math.max(0, Math.min(slides.length - 1, n)); }
+
+    function render(){
+      slides.forEach(function(s, idx){ s.classList.toggle("active", idx === i); });
+      counter.textContent = (i + 1) + " / " + slides.length;
+      bar.style.width = ((i + 1) / slides.length * 100) + "%";
+    }
+
+    function go(n, push){
+      i = clamp(n);
+      // replaceState (not push): browser Back exits the deck, doesn't walk slides
+      if (push) { history.replaceState(null, "", "#" + (i + 1)); }
+      render();
+    }
+
+    function fromHash(){
+      var n = parseInt((location.hash || "").replace("#", ""), 10);
+      return isNaN(n) ? 0 : clamp(n - 1);
+    }
+
+    document.querySelector(".next").addEventListener("click", function(){ go(i + 1, true); });
+    document.querySelector(".prev").addEventListener("click", function(){ go(i - 1, true); });
+
+    document.addEventListener("keydown", function(e){
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(i + 1, true); }
+      else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1, true); }
+      else if (e.key === "Home") { go(0, true); }
+      else if (e.key === "End") { go(slides.length - 1, true); }
+    });
+
+    window.addEventListener("hashchange", function(){ go(fromHash(), false); });
+
+    go(fromHash(), false);
+  })();
+</script>
+
+</body>
+</html>
