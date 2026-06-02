@@ -434,14 +434,14 @@ files = [
 
 [[package]]
 name = "openai"
-version = "2.38.0"
+version = "2.40.0"
 description = "The official Python library for the openai API"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "openai-2.38.0-py3-none-any.whl", hash = "sha256:ec6661c57b2dcc47414a767e6e3335c7ed3d19c9696999283a3c82e95c756a3c"},
-    {file = "openai-2.38.0.tar.gz", hash = "sha256:798694c6cf74145541fda94325b6f8f72d8e1fd0262cc137c8d728177a6a4ce3"},
+    {file = "openai-2.40.0-py3-none-any.whl", hash = "sha256:2b205637ff214477f9ce9ab035e9f494db0e3fa8f1e599008953735fbf6ff1ff"},
+    {file = "openai-2.40.0.tar.gz", hash = "sha256:9a756f91f274a24ad6026cbcb2042fd356c8d4a10e8f347b08d34465e585f7a2"},
 ]
 
 [package.dependencies]
@@ -994,14 +994,14 @@ telegram = ["requests"]
 
 [[package]]
 name = "typer"
-version = "0.26.4"
+version = "0.26.5"
 description = "Typer, build great CLIs. Easy to code. Based on Python type hints."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "typer-0.26.4-py3-none-any.whl", hash = "sha256:11bfd7b43557137e373c2b10f6967a555f9678a61ed72c808968b011d95534d6"},
-    {file = "typer-0.26.4.tar.gz", hash = "sha256:25b128964de66c5ea36d5ac82adc579e5e113509b17469edf9f5a4a1864ff2a9"},
+    {file = "typer-0.26.5-py3-none-any.whl", hash = "sha256:4bfd901d564e41608920134aa5d4481200f4ba76d98e982d9f9d32dcb7b84da0"},
+    {file = "typer-0.26.5.tar.gz", hash = "sha256:9b9b39e35c3afc9e1e51a06f21155246e457c0911279b09b35d8210ca74b935c"},
 ]
 
 [package.dependencies]
@@ -1043,4 +1043,4 @@ dev = ["black", "isort", "pytest", "pytest-asyncio", "pyyaml", "ruff"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4"
-content-hash = "e163965482916f608d63552a1305a7753fdb027fa004ce1a4abc927cae39671a"
+content-hash = "3ec71f4b6373b50e55e70f55541ebc507592dd645928306af4108cfb02ef287f"

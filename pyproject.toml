@@ -1,22 +1,5 @@
 [project]
-name = "openai-rq"
-version = "0.1.1"
-description = "OpenAI-compatible client + worker that bridge inference requests over a Redis queue (Redis Streams), for running LLMs across heavily restricted networks."
-readme = "README.md"
 authors = [{ name = "AllenChou", email = "f1470891079@gmail.com" }]
-license = "Apache-2.0"
-license-files = ["LICENSE"]
-requires-python = ">=3.11,<4"
-keywords = [
-    "openai",
-    "redis",
-    "redis-streams",
-    "vllm",
-    "llm",
-    "inference",
-    "proxy",
-    "queue",
-]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -28,16 +11,33 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
-dependencies = ["openai>=1.0", "redis>=5.0", "httpx", "typer"]
+dependencies = ["httpx", "openai>=1.0", "redis>=5.0", "typer"]
+description = "OpenAI-compatible client + worker that bridge inference requests over a Redis queue (Redis Streams), for running LLMs across heavily restricted networks."
+keywords = [
+    "inference",
+    "llm",
+    "openai",
+    "proxy",
+    "queue",
+    "redis",
+    "redis-streams",
+    "vllm",
+]
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+name = "openai-rq"
+readme = "README.md"
+requires-python = ">=3.11,<4"
+version = "0.1.2"
 
 [project.urls]
-Homepage = "https://github.com/allen2c/openai-rq"
 Documentation = "https://allen2c.github.io/openai-rq/"
-Repository = "https://github.com/allen2c/openai-rq"
+Homepage = "https://github.com/allen2c/openai-rq"
 Issues = "https://github.com/allen2c/openai-rq/issues"
+Repository = "https://github.com/allen2c/openai-rq"
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-asyncio", "black", "isort", "ruff", "pyyaml"]
+dev = ["black", "isort", "pytest", "pytest-asyncio", "pyyaml", "ruff"]
 
 [project.scripts]
 openai-rq = "openai_rq.cli:app"
@@ -47,5 +47,5 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=2.0.0,<3.0.0"]
