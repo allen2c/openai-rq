@@ -16,7 +16,21 @@ _DEFAULT_TIMEOUT_S = 600.0  # used when the SDK request carries no read timeout
 
 
 def _is_stream(request: httpx.Request) -> bool:
-    return request.headers.get("accept", "").startswith("text/event-stream")
+    # Accept BOTH streaming conventions, for maximum client compatibility:
+    #   1) Accept: text/event-stream  — used by some clients/SDKs.
+    #   2) "stream": true in the JSON body — what the OpenAI SDK uses (it sends
+    #      Accept: application/json even when streaming).
+    # Order matters: check the cheap header first, then fall back to the body.
+    # A false negative only costs an extra non-stream relay (still correct); a
+    # false positive can't happen since both signals are explicit.
+    if request.headers.get("accept", "").startswith("text/event-stream"):
+        return True
+    if "application/json" not in request.headers.get("content-type", ""):
+        return False
+    try:
+        return bool(json.loads(request.content).get("stream"))
+    except (ValueError, TypeError, AttributeError):
+        return False
 
 
 def _read_timeout(request: httpx.Request) -> float:

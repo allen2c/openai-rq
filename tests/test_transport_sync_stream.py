@@ -66,8 +66,8 @@ def test_streaming_error_sentinel_sets_status(redis_client):
     with client.stream(
         "POST",
         "http://openai-rq.invalid/v1/chat/completions",
-        headers={"accept": "text/event-stream"},
-        content=b"{}",
+        headers={"content-type": "application/json"},
+        content=b'{"stream":true}',
     ) as resp:
         body = b"".join(resp.iter_bytes())
         assert resp.status_code == 400

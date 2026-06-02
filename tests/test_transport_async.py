@@ -57,7 +57,7 @@ async def test_async_streaming_roundtrip(async_redis_client):
         async with client.stream(
             "POST",
             "http://openai-rq.invalid/v1/chat/completions",
-            headers={"accept": "text/event-stream"},
+            headers={"content-type": "application/json"},
             content=b'{"stream":true}',
         ) as resp:
             assert resp.status_code == 200
