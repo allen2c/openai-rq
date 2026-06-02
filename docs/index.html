@@ -6,80 +6,172 @@
 <title>openai-rq</title>
 <style>
   :root{
-    --bg:#ffffff; --fg:#1a1a1a; --muted:#666666;
-    --accent:#d92d20; --rule:#ececec;
-    --code-bg:#f6f8fa; --code-fg:#1a1a1a;
-    --sans:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --mono:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;
+    --paper:#f7f4ec; --ink:#211c15; --muted:#8a8173;
+    --accent:#c0271b; --accent-soft:#d8a39c;
+    --rule:#e2dbca; --panel:#efe9db;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua","Hoefler Text",Georgia,"Times New Roman",serif;
+    --mono:"SF Mono",ui-monospace,"Cascadia Code","DejaVu Sans Mono",Menlo,Consolas,monospace;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
-  body{background:var(--bg);color:var(--fg);font-family:var(--sans);line-height:1.5;
-    -webkit-font-smoothing:antialiased}
+  body{background:var(--paper);color:var(--ink);font-family:var(--serif);line-height:1.5;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 
-  .progress{position:fixed;top:0;left:0;right:0;height:3px;background:transparent;z-index:10}
-  .progress-bar{height:100%;width:0;background:var(--accent);transition:width .25s ease}
+  /* Paper grain — inline SVG, no network, sits behind content */
+  .grain{position:fixed;inset:0;z-index:0;pointer-events:none;mix-blend-mode:multiply;opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
-  .slide{display:none;min-height:100vh;padding:7vh 8vw;flex-direction:column;
-    justify-content:center}
-  .slide.active{display:flex;animation:fade .35s ease}
-  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-  .inner{max-width:900px;width:100%;margin:0 auto}
+  .progress{position:fixed;top:0;left:0;right:0;height:2px;background:transparent;z-index:40}
+  .progress-bar{height:100%;width:0;background:var(--accent);transition:width .35s cubic-bezier(.2,.7,.2,1)}
 
-  .label{text-transform:uppercase;letter-spacing:.16em;font-size:.72rem;font-weight:700;
-    color:var(--accent);margin-bottom:.8rem}
-  .rule{width:28px;height:3px;background:var(--accent);margin:0 0 1.3rem}
-  h1{font-size:clamp(2.4rem,6vw,4rem);font-weight:800;letter-spacing:-.03em;margin:.1em 0}
-  h2{font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;letter-spacing:-.02em;margin:0 0 .6em}
-  .subtitle{font-size:clamp(1rem,2.2vw,1.3rem);color:var(--muted);max-width:34em}
-  p{font-size:clamp(1rem,2vw,1.2rem)}
-  ul{font-size:clamp(1rem,2vw,1.18rem);padding-left:1.2em}
-  li{margin:.45em 0}
-  li::marker{color:var(--accent)}
+  /* Running chrome */
+  .menu-btn{position:fixed;top:1.15rem;left:1.4rem;z-index:30;display:inline-flex;align-items:center;
+    gap:.55em;font-family:var(--mono);font-size:.7rem;font-weight:600;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);background:transparent;border:0;
+    border-bottom:1px solid transparent;padding:.2em 0;cursor:pointer;transition:color .2s,border-color .2s}
+  .menu-btn:hover{color:var(--accent);border-color:var(--accent)}
+  .menu-btn .kbd{font-size:.78em;border:1px solid var(--rule);border-radius:3px;padding:0 .35em;letter-spacing:0}
+
+  .folio{position:fixed;top:1.15rem;right:1.4rem;z-index:30;font-family:var(--mono);font-size:.7rem;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .folio b{color:var(--ink);font-weight:600}
+  .folio .sep{color:var(--accent);margin:0 .5em}
+
+  /* Slides */
+  .slide{position:relative;display:none;min-height:100vh;padding:13vh 9vw 14vh;flex-direction:column;
+    justify-content:center;z-index:2}
+  .slide.active{display:flex}
+  .inner{max-width:46rem;width:100%}
+
+  /* Giant chapter numeral — editorial folio motif, behind the content.
+     Driven by data-n, NOT a CSS counter: only the active slide is in the box
+     tree (the rest are display:none), so a counter would read "01" everywhere. */
+  .slide::before{content:attr(data-n);position:absolute;top:9vh;right:7vw;
+    z-index:-1;font-family:var(--serif);font-weight:400;font-size:clamp(7rem,22vw,18rem);
+    line-height:.8;color:var(--accent);opacity:.07;letter-spacing:-.04em;pointer-events:none}
+  .slide:first-child::before{display:none}
+
+  .label{font-family:var(--mono);text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;
+    font-weight:600;color:var(--accent);margin-bottom:1.5rem;display:flex;align-items:center;gap:.7em}
+  .label::before{content:"";width:1.6rem;height:1px;background:var(--accent)}
+  .rule{width:2.2rem;height:1px;background:var(--accent);margin:0 0 1.6rem;position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:-2px;width:5px;height:5px;background:var(--accent);
+    border-radius:50%}
+
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(3.2rem,11vw,7rem);line-height:.95;
+    letter-spacing:-.035em;margin:.05em 0 .35em}
+  h2{font-family:var(--serif);font-weight:400;font-size:clamp(2rem,5.5vw,3.4rem);line-height:1.08;
+    letter-spacing:-.02em;margin:0 0 .7em;max-width:16ch}
+  .subtitle{font-style:italic;font-size:clamp(1.05rem,2.3vw,1.4rem);color:var(--muted);max-width:34ch;
+    line-height:1.45}
+  p{font-size:clamp(1.05rem,2vw,1.28rem);line-height:1.58;max-width:42ch}
+  ul{font-size:clamp(1.02rem,1.9vw,1.2rem);padding-left:1.3em;margin:.4em 0 0;max-width:46ch}
+  li{margin:.62em 0;line-height:1.5;padding-left:.15em}
+  li::marker{color:var(--accent);content:"— "}
   strong{font-weight:700}
-  .big{font-size:clamp(1.2rem,3vw,1.7rem);line-height:1.45}
+  em{font-style:italic}
+  .big{font-size:clamp(1.45rem,3.4vw,2.15rem);line-height:1.32;max-width:24ch;font-weight:400;
+    border-left:2px solid var(--accent);padding-left:1rem;margin:.2em 0 .9em}
 
-  pre.code{background:var(--code-bg);color:var(--code-fg);font-family:var(--mono);
-    font-size:clamp(.78rem,1.5vw,1rem);line-height:1.6;padding:1.1em 1.3em;border-radius:8px;
-    border:1px solid var(--rule);overflow:auto;margin:1em 0}
+  /* Code — editorial figure with a caption */
+  figure.snippet{margin:1.3rem 0 .4rem;max-width:100%}
+  figure.snippet figcaption{font-family:var(--mono);font-size:.66rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--muted);padding:0 0 .55em .1em;display:flex;align-items:center;gap:.6em}
+  figure.snippet figcaption::before{content:"figure";color:var(--accent);font-weight:600}
+  pre.code{background:var(--panel);color:var(--ink);font-family:var(--mono);
+    font-size:clamp(.7rem,1.3vw,.92rem);line-height:1.6;padding:1.05em 1.25em;margin:0;
+    width:max-content;max-width:100%;
+    border:1px solid var(--rule);border-left:2px solid var(--accent);overflow:auto}
   code{font-family:var(--mono)}
-  .cmt{color:var(--muted)}
+  :not(pre) > code{font-size:.85em;background:var(--panel);padding:.08em .38em;border-radius:3px}
+  .cmt{color:var(--muted);font-style:italic}
   .kw{color:var(--accent)}
 
-  .diagram{display:flex;align-items:center;flex-wrap:wrap;gap:.6rem;margin:1.4rem 0;
-    font-family:var(--mono);font-size:clamp(.75rem,1.6vw,1rem)}
-  .node{border:1.5px solid var(--fg);border-radius:8px;padding:.7em 1em;background:#fff;
-    text-align:center;white-space:nowrap}
-  .node.accent{border-color:var(--accent);color:var(--accent);font-weight:700}
-  .node.dim{border-style:dashed;color:var(--muted)}
-  .arrow{color:var(--muted);font-weight:700}
+  /* Diagrams — hairline, monospace, sharp */
+  .diagram{display:flex;align-items:center;flex-wrap:wrap;gap:.55rem;margin:1.6rem 0;
+    font-family:var(--mono);font-size:clamp(.72rem,1.5vw,.95rem)}
+  .node{border:1px solid var(--ink);border-radius:2px;padding:.6em .95em;background:var(--paper);
+    text-align:center;white-space:nowrap;letter-spacing:.02em}
+  .node.accent{border-color:var(--accent);color:var(--accent);box-shadow:3px 3px 0 var(--accent-soft)}
+  .node.dim{border-style:dashed;border-color:var(--rule);color:var(--muted)}
+  .arrow{color:var(--accent);font-weight:700}
 
-  .controls{position:fixed;bottom:1.4rem;left:0;right:0;display:flex;gap:1rem;
-    align-items:center;justify-content:center;z-index:10}
-  .controls button{font-size:1.2rem;width:2.4rem;height:2.4rem;border-radius:50%;
-    border:1px solid var(--rule);background:#fff;color:var(--fg);cursor:pointer;line-height:1}
+  /* Entrance choreography — replays each time a slide activates */
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  @keyframes ghostin{from{opacity:0;transform:translateY(-14px) scale(.96)}to{opacity:.07;transform:none}}
+  .slide.active .inner>*{animation:rise .62s cubic-bezier(.2,.7,.2,1) both}
+  .slide.active .inner>*:nth-child(1){animation-delay:.04s}
+  .slide.active .inner>*:nth-child(2){animation-delay:.12s}
+  .slide.active .inner>*:nth-child(3){animation-delay:.20s}
+  .slide.active .inner>*:nth-child(4){animation-delay:.28s}
+  .slide.active .inner>*:nth-child(5){animation-delay:.36s}
+  .slide.active .inner>*:nth-child(6){animation-delay:.44s}
+  .slide.active::before{animation:ghostin .9s ease both}
+
+  /* Bottom navigation */
+  .controls{position:fixed;bottom:1.4rem;left:0;right:0;display:flex;gap:1.6rem;align-items:center;
+    justify-content:center;z-index:30}
+  .controls button{font-family:var(--serif);font-size:1.3rem;width:2.3rem;height:2.3rem;
+    border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer;line-height:1;
+    transition:all .2s}
   .controls button:hover{border-color:var(--accent);color:var(--accent)}
-  .counter{font-family:var(--mono);font-size:.85rem;color:var(--muted);min-width:4.5em;
-    text-align:center}
+  .counter{font-family:var(--mono);font-size:.74rem;letter-spacing:.1em;color:var(--muted);
+    min-width:5em;text-align:center}
+
+  /* Outline / contents */
+  .outline{position:fixed;inset:0;z-index:50;display:none;background:rgba(247,244,236,.985);
+    padding:9vh 8vw;overflow:auto}
+  .outline.open{display:block;animation:rise .3s ease both}
+  .outline .inner{max-width:46rem;margin:0 auto;position:relative}
+  .outline .label{margin-bottom:2rem}
+  .outline ol{list-style:none;padding:0;margin:0;counter-reset:toc}
+  .outline li{counter-increment:toc}
+  .outline .toc-item{display:flex;gap:1.4em;align-items:baseline;width:100%;text-align:left;
+    background:none;border:0;border-top:1px solid var(--rule);padding:.85em .1em;cursor:pointer;
+    font-family:var(--serif);font-size:clamp(1.1rem,2.4vw,1.5rem);color:var(--ink);transition:color .15s}
+  .outline li:last-child .toc-item{border-bottom:1px solid var(--rule)}
+  .outline .toc-item:hover{color:var(--accent)}
+  .outline .toc-item::before{content:counter(toc,decimal-leading-zero);font-family:var(--mono);
+    font-size:.62em;color:var(--muted);min-width:3em;letter-spacing:.1em}
+  .outline li.current .toc-item,.outline li.current .toc-item::before{color:var(--accent)}
+  .outline li.current .toc-item{font-style:italic}
+  .outline .close{position:absolute;top:-.2rem;right:0;font-family:var(--serif);font-size:1.8rem;
+    line-height:1;background:none;border:0;color:var(--muted);cursor:pointer}
+  .outline .close:hover{color:var(--accent)}
 
   a{color:var(--accent)}
 
   @media print{
-    .progress,.controls{display:none}
+    .grain,.progress,.controls,.menu-btn,.folio,.outline{display:none !important}
     .slide{display:flex !important;min-height:auto;page-break-after:always;padding:6vh 8vw}
+    .slide::before{opacity:.09}
+    .slide.active .inner>*{animation:none}
+    body{background:#fff}
   }
 </style>
 </head>
 <body>
 
+<div class="grain" aria-hidden="true"></div>
 <div class="progress"><div class="progress-bar"></div></div>
+
+<button class="menu-btn" aria-label="Show contents">☰ Contents <span class="kbd">O</span></button>
+<div class="folio" aria-hidden="true">openai-rq <span class="sep">/</span> <b class="folio-n">01</b> / 14</div>
+
+<nav class="outline" aria-label="Slide contents" hidden>
+  <div class="inner">
+    <button class="close" aria-label="Close contents">×</button>
+    <div class="label">Contents</div>
+    <ol class="toc-list"></ol>
+  </div>
+</nav>
 
 <main>
 
   <!-- 1 · Title -->
-  <section class="slide">
+  <section class="slide" data-n="01" data-title="openai-rq">
     <div class="inner">
-      <div class="label">OpenAI SDK · Redis · vLLM</div>
+      <div class="label">OpenAI SDK · Redis · inference backend</div>
       <h1>openai-rq</h1>
       <p class="subtitle">Run the OpenAI SDK from behind a locked-down network —
         by tunnelling inference over Redis.</p>
@@ -87,7 +179,7 @@
   </section>
 
   <!-- 2 · The problem -->
-  <section class="slide">
+  <section class="slide" data-n="02" data-title="The problem">
     <div class="inner">
       <div class="rule"></div>
       <h2>The problem</h2>
@@ -98,14 +190,14 @@
         <span class="arrow">│ 🔒 │</span>
         <span class="node accent">Redis</span>
         <span class="arrow">│ 🔒 │</span>
-        <span class="node dim">cloud / vLLM</span>
+        <span class="node dim">inference backend</span>
       </div>
       <p class="subtitle">No direct HTTP from the client to the inference box is possible.</p>
     </div>
   </section>
 
   <!-- 3 · Redis is the only rendezvous -->
-  <section class="slide">
+  <section class="slide" data-n="03" data-title="Redis is the only rendezvous">
     <div class="inner">
       <div class="rule"></div>
       <h2>So Redis is the only rendezvous</h2>
@@ -116,23 +208,25 @@
   </section>
 
   <!-- 4 · Key insight -->
-  <section class="slide">
+  <section class="slide" data-n="04" data-title="Key insight: the backend speaks OpenAI HTTP">
     <div class="inner">
       <div class="label">Key insight</div>
-      <h2>vLLM is already an OpenAI HTTP server</h2>
+      <h2>The backend is already an OpenAI HTTP server</h2>
       <p>So the OpenAI SDK on the client already builds a valid HTTP request. We intercept
         at the <strong>transport layer</strong>, ship that raw request over Redis, and the
-        worker simply <strong>replays</strong> it against the local server.</p>
+        worker simply <strong>replays</strong> it against the local backend.</p>
       <ul>
-        <li>Generic relay — chat, embeddings, any current/future endpoint, zero changes.</li>
+        <li>Generic relay — chat, embeddings, any current or future endpoint, zero changes.</li>
         <li>Errors propagate for free — the worker returns the real status + body.</li>
-        <li>Streaming is just an SSE HTTP response — same model.</li>
+        <li>Streaming is just an SSE HTTP response — same mechanism.</li>
       </ul>
+      <p class="subtitle">Works with anything that speaks the OpenAI API —
+        vLLM, SGLang, TGI, llama.cpp, Ollama.</p>
     </div>
   </section>
 
   <!-- 5 · Architecture -->
-  <section class="slide">
+  <section class="slide" data-n="05" data-title="Architecture">
     <div class="inner">
       <div class="rule"></div>
       <h2>Architecture</h2>
@@ -141,7 +235,7 @@
         <span class="arrow">⇄ Redis Streams ⇄</span>
         <span class="node">openai-rq worker</span>
         <span class="arrow">→ HTTP →</span>
-        <span class="node dim">vLLM :8000</span>
+        <span class="node dim">backend :8000</span>
       </div>
       <p>Both client and worker connect <strong>only</strong> to Redis. The worker is
         outbound-only — nothing connects <em>into</em> the cloud box.</p>
@@ -149,11 +243,13 @@
   </section>
 
   <!-- 6 · Client -->
-  <section class="slide">
+  <section class="slide" data-n="06" data-title="Client = a drop-in openai.OpenAI">
     <div class="inner">
       <div class="rule"></div>
       <h2>Client = a drop-in <code>openai.OpenAI</code></h2>
-      <pre class="code"><span class="cmt"># swap the class, point at Redis — everything else is identical</span>
+      <figure class="snippet">
+        <figcaption>client.py</figcaption>
+        <pre class="code"><span class="cmt"># swap the class, point at Redis — the rest is identical</span>
 from openai_rq import OpenAIRQ
 
 client = OpenAIRQ(redis_url=<span class="kw">"redis://localhost:6379/0"</span>)
@@ -162,70 +258,149 @@ resp = client.chat.completions.create(
     model=<span class="kw">"openai/gpt-oss-120b"</span>,
     messages=[{<span class="kw">"role"</span>: <span class="kw">"user"</span>, <span class="kw">"content"</span>: <span class="kw">"Hello!"</span>}],
 )
-<span class="cmt"># streaming and AsyncOpenAIRQ work exactly like the real SDK</span></pre>
+<span class="cmt"># streaming + AsyncOpenAIRQ behave like the real SDK</span></pre>
+      </figure>
     </div>
   </section>
 
   <!-- 7 · extra_body / extra_headers -->
-  <section class="slide">
+  <section class="slide" data-n="07" data-title="extra_body / extra_headers just work">
     <div class="inner">
       <div class="label">A free bonus</div>
       <h2><code>extra_body</code> / <code>extra_headers</code> just work</h2>
       <p>Because we intercept at the transport, the SDK bakes these into the request and the
         worker replays them verbatim — no code needed.</p>
-      <pre class="code">client.chat.completions.create(
+      <figure class="snippet">
+        <figcaption>provider-specific fields</figcaption>
+        <pre class="code">client.chat.completions.create(
     model=<span class="kw">"openai/gpt-oss-120b"</span>,
     messages=[...],
-    extra_body={<span class="kw">"guided_json"</span>: schema},   <span class="cmt"># server-specific options pass through</span>
+    extra_body={<span class="kw">"guided_json"</span>: schema},   <span class="cmt"># passes through</span>
 )</pre>
+      </figure>
     </div>
   </section>
 
   <!-- 8 · Worker -->
-  <section class="slide">
+  <section class="slide" data-n="08" data-title="Worker — run it next to the backend">
     <div class="inner">
       <div class="rule"></div>
-      <h2>Worker — run it next to vLLM</h2>
-      <pre class="code">openai-rq worker \
+      <h2>Worker — run it next to the backend</h2>
+      <figure class="snippet">
+        <figcaption>shell</figcaption>
+        <pre class="code">openai-rq worker \
     --redis-url redis://localhost:6379/0 \
     --openai-base-url http://localhost:8000/v1 \
     --concurrency 16</pre>
+      </figure>
       <p>Run as many workers as you like against the same Redis — jobs are load-balanced
         across them via a Redis <strong>consumer group</strong>.</p>
     </div>
   </section>
 
-  <!-- 9 · Under the hood -->
-  <section class="slide">
+  <!-- 9 · The wire contract -->
+  <section class="slide" data-n="09" data-title="What actually crosses Redis">
+    <div class="inner">
+      <div class="label">Deep dive</div>
+      <h2>What actually crosses Redis</h2>
+      <p>The transport freezes each request into <strong>one self-describing JSON job</strong>
+        and <code>XADD</code>s it to a stream — no live socket, just a record the worker can
+        replay anywhere.</p>
+      <figure class="snippet">
+        <figcaption>openai-rq:requests · one job</figcaption>
+        <pre class="code">{
+  <span class="kw">"id"</span>:       <span class="kw">"9f2c…"</span>,       <span class="cmt"># uuid; names the result key</span>
+  <span class="kw">"method"</span>:   <span class="kw">"POST"</span>,
+  <span class="kw">"path"</span>:     <span class="kw">"/v1/chat/completions"</span>,
+  <span class="kw">"headers"</span>:  { … },         <span class="cmt"># hop-by-hop headers stripped</span>
+  <span class="kw">"body_b64"</span>: <span class="kw">"eyJtb2RlbCI6…"</span>,   <span class="cmt"># the SDK's exact body</span>
+  <span class="kw">"stream"</span>:   true
+}</pre>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 10 · Detecting a stream (the v0.1.2 fix) -->
+  <section class="slide" data-n="10" data-title="Is this request a stream?">
+    <div class="inner">
+      <div class="label">A gotcha worth knowing</div>
+      <h2>Is this request a stream?</h2>
+      <p>You'd reach for <code>Accept: text/event-stream</code> — but the OpenAI SDK sends
+        <code>Accept: application/json</code> <em>even when</em> <code>stream=True</code>. The
+        only signal is <code>"stream": true</code> inside the body.</p>
+      <figure class="snippet">
+        <figcaption>transport.py · _is_stream()</figcaption>
+        <pre class="code"><span class="kw">def</span> _is_stream(request):
+    accept = request.headers.get(<span class="kw">"accept"</span>, <span class="kw">""</span>)
+    <span class="kw">if</span> accept.startswith(<span class="kw">"text/event-stream"</span>):
+        <span class="kw">return</span> True                  <span class="cmt"># explicit SSE</span>
+    <span class="cmt"># the OpenAI SDK signals streaming only in the body</span>
+    ctype = request.headers.get(<span class="kw">"content-type"</span>, <span class="kw">""</span>)
+    <span class="kw">if</span> <span class="kw">"application/json"</span> <span class="kw">in</span> ctype:
+        <span class="kw">return</span> bool(json.loads(request.content).get(<span class="kw">"stream"</span>))
+    <span class="kw">return</span> False</pre>
+      </figure>
+      <p class="subtitle">Header-only detection routed every SDK stream down the blocking path.
+        Reading the body fixes it — proven against the real SDK. <strong>(v0.1.2)</strong></p>
+    </div>
+  </section>
+
+  <!-- 11 · Streaming, reassembled -->
+  <section class="slide" data-n="11" data-title="Streaming, reassembled over a Redis Stream">
     <div class="inner">
       <div class="rule"></div>
-      <h2>Under the hood</h2>
+      <h2>Streaming, reassembled over a Redis Stream</h2>
+      <p>The worker writes the upstream SSE response into a per-request Redis Stream as typed
+        entries; the client replays them as an ordinary httpx streaming body.</p>
+      <div class="diagram">
+        <span class="node accent">head</span>
+        <span class="arrow">→</span>
+        <span class="node">data</span>
+        <span class="arrow">→</span>
+        <span class="node">data …</span>
+        <span class="arrow">→</span>
+        <span class="node dim">done / error</span>
+      </div>
       <ul>
-        <li><strong>Redis Streams + consumer group</strong> — load-balanced, persistent,
-          crash-recoverable (not pub/sub).</li>
-        <li><strong>Buffered streaming</strong> — raw SSE bytes coalesced in a ~50ms window,
-          fed straight into the SDK's own parser.</li>
-        <li><strong>At-least-once reliability</strong> — XACK, XAUTOCLAIM reclaim of orphans,
-          retry → dead-letter.</li>
-        <li><strong>Mandatory TTLs</strong> on every result/stream key — bounded Redis memory.</li>
+        <li><strong>head</strong> carries status + headers — the client builds the response from it.</li>
+        <li><strong>data</strong> is raw SSE bytes, coalesced in a ~50ms window and never split mid-event.</li>
+        <li><strong>done / error</strong> is a terminal sentinel; bytes feed straight into the SDK's own parser.</li>
       </ul>
     </div>
   </section>
 
-  <!-- 10 · Backend auth -->
-  <section class="slide">
+  <!-- 12 · Reliability & lifecycle -->
+  <section class="slide" data-n="12" data-title="Reliability & lifecycle">
+    <div class="inner">
+      <div class="rule"></div>
+      <h2>Reliability &amp; lifecycle</h2>
+      <ul>
+        <li><strong>Consumer group, not pub/sub</strong> — <code>XREADGROUP</code> load-balances
+          jobs across N workers; persistent and replayable, not fire-and-forget.</li>
+        <li><strong>At-least-once</strong> — <code>XACK</code> on completion; <code>XAUTOCLAIM</code>
+          reclaims jobs orphaned by a crashed worker (idle &gt; 60s).</li>
+        <li><strong>Dead-letter</strong> — past <code>--max-retries</code> a job is parked, and the
+          waiting client is unblocked with a terminal <code>502</code> rather than hanging.</li>
+        <li><strong>Bounded by design</strong> — the request stream is <code>maxlen</code>-capped and
+          every result/stream key carries a TTL. The client's read-timeout maps to the Redis block time.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 13 · Backend auth -->
+  <section class="slide" data-n="13" data-title="Backend auth, done right">
     <div class="inner">
       <div class="rule"></div>
       <h2>Backend auth, done right</h2>
-      <p class="big">The backend credential is owned by the <strong>worker</strong>.</p>
+      <p class="big">The backend credential is owned by the worker.</p>
       <p>Set via <code>--openai-api-key</code> (→ <code>Authorization: Bearer</code>) or
         <code>--openai-header</code> for custom auth. It's injected at relay time and
         <strong>never transits Redis or reaches the client</strong>.</p>
     </div>
   </section>
 
-  <!-- 11 · Recap -->
-  <section class="slide">
+  <!-- 14 · Recap -->
+  <section class="slide" data-n="14" data-title="Recap">
     <div class="inner">
       <div class="label">Recap</div>
       <h2>Identical client code, any endpoint, zero SDK changes</h2>
@@ -234,7 +409,7 @@ resp = client.chat.completions.create(
         <li>Generic relay — every OpenAI endpoint, now and future.</li>
         <li>Streams-backed reliability, bounded memory, worker-side auth.</li>
       </ul>
-      <p class="subtitle" style="margin-top:1.4rem">github.com/allen2c/openai-rq</p>
+      <p class="subtitle">github.com/allen2c/openai-rq</p>
     </div>
   </section>
 
@@ -242,7 +417,7 @@ resp = client.chat.completions.create(
 
 <nav class="controls">
   <button class="prev" aria-label="Previous">‹</button>
-  <span class="counter" aria-live="polite">1 / 11</span>
+  <span class="counter" aria-live="polite">01 / 14</span>
   <button class="next" aria-label="Next">›</button>
 </nav>
 
@@ -251,13 +426,32 @@ resp = client.chat.completions.create(
     var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
     var bar = document.querySelector(".progress-bar");
     var counter = document.querySelector(".counter");
+    var folioN = document.querySelector(".folio-n");
+    var outline = document.querySelector(".outline");
+    var tocList = document.querySelector(".toc-list");
+    var tocItems = [];
     var i = 0;
 
     function clamp(n){ return Math.max(0, Math.min(slides.length - 1, n)); }
+    function pad(n){ return (n < 10 ? "0" : "") + n; }
+
+    // Build the contents list from each slide's data-title — add a slide, it shows up here.
+    slides.forEach(function(s, idx){
+      var li = document.createElement("li");
+      var btn = document.createElement("button");
+      btn.className = "toc-item";
+      btn.textContent = s.getAttribute("data-title") || ("Slide " + (idx + 1));
+      btn.addEventListener("click", function(){ closeOutline(); go(idx, true); });
+      li.appendChild(btn);
+      tocList.appendChild(li);
+      tocItems.push(li);
+    });
 
     function render(){
       slides.forEach(function(s, idx){ s.classList.toggle("active", idx === i); });
-      counter.textContent = (i + 1) + " / " + slides.length;
+      tocItems.forEach(function(li, idx){ li.classList.toggle("current", idx === i); });
+      counter.textContent = pad(i + 1) + " / " + pad(slides.length);
+      folioN.textContent = pad(i + 1);
       bar.style.width = ((i + 1) / slides.length * 100) + "%";
     }
 
@@ -273,10 +467,21 @@ resp = client.chat.completions.create(
       return isNaN(n) ? 0 : clamp(n - 1);
     }
 
+    function openOutline(){ outline.classList.add("open"); outline.removeAttribute("hidden"); }
+    function closeOutline(){ outline.classList.remove("open"); outline.setAttribute("hidden", ""); }
+    function toggleOutline(){ outline.classList.contains("open") ? closeOutline() : openOutline(); }
+
     document.querySelector(".next").addEventListener("click", function(){ go(i + 1, true); });
     document.querySelector(".prev").addEventListener("click", function(){ go(i - 1, true); });
+    document.querySelector(".menu-btn").addEventListener("click", toggleOutline);
+    document.querySelector(".outline .close").addEventListener("click", closeOutline);
+    // click the backdrop (outside the panel) to dismiss
+    outline.addEventListener("click", function(e){ if (e.target === outline) closeOutline(); });
 
     document.addEventListener("keydown", function(e){
+      if (e.key === "o" || e.key === "O") { e.preventDefault(); toggleOutline(); return; }
+      if (e.key === "Escape") { closeOutline(); return; }
+      if (outline.classList.contains("open")) return;  // let the overlay own the keys while open
       if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(i + 1, true); }
       else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1, true); }
       else if (e.key === "Home") { go(0, true); }
